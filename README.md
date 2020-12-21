@@ -1,18 +1,23 @@
 # alpha_vantage
 
 [![Build Status](https://travis-ci.org/RomelTorres/alpha_vantage.png?branch=master)](https://travis-ci.org/RomelTorres/alpha_vantage)
-[![PyPI version](https://badge.fury.io/py/alpha_vantage.svg)](https://badge.fury.io/py/alpha_vantage)
+[![PyPI version](https://badge.fury.io/py/alpha-vantage.svg)](https://badge.fury.io/py/alpha-vantage)
 [![Documentation Status](https://readthedocs.org/projects/alpha-vantage/badge/?version=latest)](http://alpha-vantage.readthedocs.io/en/latest/?badge=latest)
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/RomelTorres/alpha_vantage.svg)](http://isitmaintained.com/project/RomelTorres/alpha_vantage "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/RomelTorres/alpha_vantage.svg)](http://isitmaintained.com/project/RomelTorres/alpha_vantage "Percentage of issues still open")
 
 *Python module to get stock data/cryptocurrencies from the Alpha Vantage API*
 
-Alpha Vantage delivers a free API for real time financial data and most used finance indicators in a simple json or pandas format. This module implements a python interface to the free API provided by Alpha
-Vantage (http://www.alphavantage.co/). It requires a free API key, that can be requested on http://www.alphavantage.co/support/#api-key. You can have a look at all the API calls available in their documentation http://www.alphavantage.co/documentation
+Alpha Vantage delivers a free API for real time financial data and most used finance indicators in a simple json or pandas format. This module implements a python interface to the free API provided by [Alpha Vantage](https://www.alphavantage.co/). It requires a free API key, that can be requested from http://www.alphavantage.co/support/#api-key. You can have a look at all the API calls available in their [API documentation](https://www.alphavantage.co/documentation/).
+
+For code-less access to the APIs, you may also consider the official [Google Sheet Add-on](https://gsuite.google.com/marketplace/app/alpha_vantage_market_data/434809773372) or the [Microsoft Excel Add-on](https://appsource.microsoft.com/en-us/product/office/WA200001365) by Alpha Vantage. Check out [this](https://medium.com/@patrick.collins_58673/stock-api-landscape-5c6e054ee631) guide for some common tips on working with financial market data. 
 
 ## News
 
+* From version 2.3.0 onwards, fundamentals data and extended intraday is supported.
+* From version 2.2.0 onwards, asyncio support now provided. See below for more information. 
+* From version 2.1.3 onwards, [rapidAPI](https://rapidapi.com/alphavantage/api/alpha-vantage-alpha-vantage-default) key integration is now available.
+* From version 2.1.0 onwards, error logging of bad API calls has been made more apparent.
 * From version 1.9.0 onwards, the urllib was substituted by pythons request library that is thread safe. If you have any error, post an issue.
 * From version 1.8.0 onwards, the column names of the data frames have changed, they are now exactly what alphavantage gives back in their json response. You can see the examples in better detail in the following git repo:  https://github.com/RomelTorres/av_example
 * From version 1.6.0, pandas was taken out as a hard dependency.
@@ -24,7 +29,7 @@ pip install alpha_vantage
 ```
 Or install with pandas support, simply install pandas too:
 ```shell
-pip install alpha_vantage, pandas
+pip install alpha_vantage pandas
 ```
 
 If you want to install from source, then use:
@@ -41,6 +46,12 @@ ts = TimeSeries(key='YOUR_API_KEY')
 # Get json object with the intraday data and another with  the call's metadata
 data, meta_data = ts.get_intraday('GOOGL')
 ```
+You may also get a key from [rapidAPI](https://rapidapi.com/alphavantage/api/alpha-vantage-alpha-vantage-default). Use your rapidAPI key for the key variable, and set ```rapidapi=True```
+
+```python
+ts = TimeSeries(key='YOUR_API_KEY',rapidapi=True)
+```
+
 Internally there is a retries counter, that can be used to minimize connection errors (in case that the API is not able to respond in time), the default is set to
 5 but can be increased or decreased whenever needed.
 ```python
@@ -151,7 +162,7 @@ Giving us as output:
 
 ### Foreign Exchange (FX)
 
-The foreign exchange is just metadata, thus only available as json format (using the 'csv' or 'pandas' format will raise an Error)
+The foreign exchange endpoint has no metadata, thus only available as json format and pandas (using the 'csv' format will raise an Error)
 
 ```python
 from alpha_vantage.foreignexchange import ForeignExchange
@@ -174,6 +185,37 @@ Giving us as output:
 }
 ```
 
+### Asyncio support
+
+From version 2.2.0 on, asyncio support will now be available. This is only for python versions 3.5+. If you do not have 3.5+, the code will break.
+
+The syntax is simple, just mark your methods with the `async` keyword, and use the `await` keyword. 
+
+Here is an example of a for loop for getting multiple symbols asyncronously. This greatly improving the performance of a program with multiple API calls.
+
+```python
+import asyncio
+from alpha_vantage.async_support.timeseries import TimeSeries
+
+symbols = ['AAPL', 'GOOG', 'TSLA', 'MSFT']
+
+
+async def get_data(symbol):
+    ts = TimeSeries(key='YOUR_KEY_HERE')
+    data, _ = await ts.get_quote_endpoint(symbol)
+    await ts.close()
+    return data
+
+loop = asyncio.get_event_loop()
+tasks = [get_data(symbol) for symbol in symbols]
+group1 = asyncio.gather(*tasks)
+results = loop.run_until_complete(group1)
+loop.close()
+print(results)
+```
+
+We have written a much more in depth article to explain asyncio for those who have never used it but want to learn about asyncio, concurrency, and multi-threading. Check it out here: [Which Should You Use: Asynchronous Programming or Multi-Threading?](https://medium.com/better-programming/which-should-you-use-asynchronous-programming-or-multi-threading-7435ec9adc8e?source=friends_link&sk=8c6c05c2bbc3666e9066547cb564c352)
+
 ## Examples
 
 I have added a repository with examples in a python notebook to better see the
@@ -193,12 +235,25 @@ nosetests
 The code documentation can be found at https://alpha-vantage.readthedocs.io/en/latest/
 
 ## Contributing
-Contributing is always welcome, since sometimes I am busy. Just contact me on how best you can contribute.
+Contributing is always welcome. Just contact us on how best you can contribute, add an issue, or make a PR. 
 
 ## TODOs:
 * The integration tests are not being run at the moment within travis, gotta fix them to run.
 * Add test for csv calls as well.
 * Add tests for incompatible parameter raise errors.
+* Github actions & other items in the issues page. 
+
+
+
+## Contact:
+You can reach/follow the Alpha Vantage team on any of the following platforms:
+* [Slack](https://alphavantage.herokuapp.com/)
+* [Twitter: @alpha_vantage](https://twitter.com/alpha_vantage)
+* [Medium-Patrick](https://medium.com/@patrick.collins_58673)
+* [Medium-AlphaVantage](https://medium.com/alpha-vantage)
+* Email: support@alphavantage.co
+* Community events: https://alphavhack.devpost.com/
+
 
 ## Star if you like it.
 If you like or use this project, consider showing your support by starring it.
